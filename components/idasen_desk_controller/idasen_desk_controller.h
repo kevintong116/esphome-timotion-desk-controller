@@ -39,16 +39,16 @@ class IdasenDeskControllerComponent : public Component, public cover::Cover, pub
  private:
   bool use_only_up_down_command_ = false;
 
-  espbt::ESPBTUUID output_service_uuid_ = uuid128_from_string("99fa0020-338a-1024-8a49-009c0215f78a");
-  espbt::ESPBTUUID output_char_uuid_ = uuid128_from_string("99fa0021-338a-1024-8a49-009c0215f78a");
+  espbt::ESPBTUUID output_service_uuid_ = uuid128_from_string("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
+  espbt::ESPBTUUID output_char_uuid_ = uuid128_from_string("6e400003-b5a3-f393-e0a9-e50e24dcca9e");
   uint16_t output_handle_;
 
-  espbt::ESPBTUUID input_service_uuid_ = uuid128_from_string("99fa0030-338a-1024-8a49-009c0215f78a");
-  espbt::ESPBTUUID input_char_uuid_ = uuid128_from_string("99fa0031-338a-1024-8a49-009c0215f78a");
+  espbt::ESPBTUUID input_service_uuid_ = uuid128_from_string("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
+  espbt::ESPBTUUID input_char_uuid_ = uuid128_from_string("6e400002-b5a3-f393-e0a9-e50e24dcca9e");
   uint16_t input_handle_;
 
-  espbt::ESPBTUUID control_service_uuid_ = uuid128_from_string("99fa0001-338a-1024-8a49-009c0215f78a");
-  espbt::ESPBTUUID control_char_uuid_ = uuid128_from_string("99fa0002-338a-1024-8a49-009c0215f78a");
+  espbt::ESPBTUUID control_service_uuid_ = uuid128_from_string("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
+  espbt::ESPBTUUID control_char_uuid_ = uuid128_from_string("6e400002-b5a3-f393-e0a9-e50e24dcca9e");
   uint16_t control_handle_;
 
   bool controlled_ = false;
@@ -57,7 +57,7 @@ class IdasenDeskControllerComponent : public Component, public cover::Cover, pub
   bool notify_disable_ = true;
   int not_moving_loop_ = 0;
 
-  void write_value_(uint16_t handle, unsigned short value);
+  void write_value_(uint16_t handle, uint64_t value);
   void read_value_(uint16_t handle);
   void publish_cover_state_(uint8_t *value, uint16_t value_len);
   void move_desk_();

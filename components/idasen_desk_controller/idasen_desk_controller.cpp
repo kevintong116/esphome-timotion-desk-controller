@@ -8,9 +8,12 @@ namespace idasen_desk_controller {
 
 static const char *TAG = "idasen_desk_controller";
 
-static const float DESK_MAX_HEIGHT = 6500;
+static const float DESK_MIN_HEIGHT = 65;
+static const float DESK_MAX_HEIGHT = 130;
 
-static float transform_height_to_position(float height) { return height / DESK_MAX_HEIGHT; }
+static float transform_height_to_position(float height) {
+  return (height - DESK_MIN_HEIGHT) / (DESK_MAX_HEIGHT - DESK_MIN_HEIGHT);
+}
 static float transform_position_to_height(float position) { return position * DESK_MAX_HEIGHT; }
 
 void IdasenDeskControllerComponent::loop() {}
@@ -64,8 +67,8 @@ void IdasenDeskControllerComponent::gattc_event_handler(esp_gattc_cb_event_t eve
       this->output_handle_ = chr_output->handle;
 
       // Register for notification
-      auto status_notify =
-          esp_ble_gattc_register_for_notify(this->parent()->get_gattc_if(), this->parent()->get_remote_bda(), this->output_handle_);
+      auto status_notify = esp_ble_gattc_register_for_notify(this->parent()->get_gattc_if(),
+                                                             this->parent()->get_remote_bda(), this->output_handle_);
       if (status_notify) {
         ESP_LOGW(TAG, "esp_ble_gattc_register_for_notify failed, status=%d", status_notify);
       }
@@ -133,13 +136,15 @@ void IdasenDeskControllerComponent::gattc_event_handler(esp_gattc_cb_event_t eve
   }
 }
 
-void IdasenDeskControllerComponent::write_value_(uint16_t handle, unsigned short value) {
-  uint8_t data[2];
-  data[0] = value;
-  data[1] = value >> 8;
+void IdasenDeskControllerComponent::write_value_(uint16_t handle, uint64_t value) {
+  ESP_LOGD(">>>> ", "write_value_");
+  uint8_t data[5];
+  for (int i = 4; i >= 0; --i) {
+    data[4 - i] = (value >> (8 * i)) & 0xFF;
+  }
 
-  esp_err_t status = ::esp_ble_gattc_write_char(this->parent()->get_gattc_if(), this->parent()->get_conn_id(), handle, 2, data,
-                                                ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
+  esp_err_t status = ::esp_ble_gattc_write_char(this->parent()->get_gattc_if(), this->parent()->get_conn_id(), handle,
+                                                sizeof(data), data, ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
 
   if (status != ESP_OK) {
     this->status_set_warning();
@@ -148,8 +153,8 @@ void IdasenDeskControllerComponent::write_value_(uint16_t handle, unsigned short
 }
 
 void IdasenDeskControllerComponent::read_value_(uint16_t handle) {
-  auto status_read =
-      esp_ble_gattc_read_char(this->parent()->get_gattc_if(), this->parent()->get_conn_id(), handle, ESP_GATT_AUTH_REQ_NONE);
+  auto status_read = esp_ble_gattc_read_char(this->parent()->get_gattc_if(), this->parent()->get_conn_id(), handle,
+                                             ESP_GATT_AUTH_REQ_NONE);
   if (status_read) {
     this->status_set_warning();
     ESP_LOGW(TAG, "[%s] Error sending read request for cover, status=%d", this->get_name().c_str(), status_read);
@@ -167,12 +172,14 @@ cover::CoverTraits IdasenDeskControllerComponent::get_traits() {
 void IdasenDeskControllerComponent::publish_cover_state_(uint8_t *value, uint16_t value_len) {
   std::vector<uint8_t> x(value, value + value_len);
 
-  uint16_t height = ((uint16_t) x[1] << 8) | x[0];
-  uint16_t speed = ((uint16_t) x[3] << 8) | x[2];
+  uint16_t height = x[3];
+  uint16_t speed = x[1];
 
   float position = transform_height_to_position((float) height);
+  //   ESP_LOGCONFIG(TAG, "publish %d %d %d %d", speed, height, position, this->position);
 
-  if (speed == 0) {
+  //   if (speed == 40) {
+  if (speed == 64) {
     this->current_operation = cover::COVER_OPERATION_IDLE;
   } else if (this->position < position) {
     this->current_operation = cover::COVER_OPERATION_OPENING;
@@ -255,29 +262,30 @@ void IdasenDeskControllerComponent::start_move_torwards_() {
   if (this->notify_disable_) {
     this->not_moving_loop_ = 0;
   }
-  if (false == this->use_only_up_down_command_) {
-    this->write_value_(this->control_handle_, 0xFE);
-    this->write_value_(this->control_handle_, 0xFF);
-  }
+  //   if (false == this->use_only_up_down_command_) {
+  //     this->write_value_(this->control_handle_, 0xFE);
+  //     this->write_value_(this->control_handle_, 0xFF);
+  //   }
 }
 
 void IdasenDeskControllerComponent::move_torwards_() {
-  if (this->use_only_up_down_command_) {
-    if (this->current_operation == cover::COVER_OPERATION_OPENING) {
-      this->write_value_(this->control_handle_, 0x47);
-    } else if (this->current_operation == cover::COVER_OPERATION_CLOSING) {
-      this->write_value_(this->control_handle_, 0x46);
-    }
-  } else {
-    this->write_value_(this->input_handle_, transform_position_to_height(this->position_target_));
+  //   if (this->use_only_up_down_command_) {
+  if (this->current_operation == cover::COVER_OPERATION_OPENING) {
+    //   this->write_value_(this->control_handle_, 0x47);
+    this->write_value_(this->control_handle_, 0xd9ff01633c);
+  } else if (this->current_operation == cover::COVER_OPERATION_CLOSING) {
+    this->write_value_(this->control_handle_, 0xd9ff02603a);
   }
+  //   } else {
+  //     this->write_value_(this->input_handle_, transform_position_to_height(this->position_target_));
+  //   }
 }
 
 void IdasenDeskControllerComponent::stop_move_() {
   this->write_value_(this->control_handle_, 0xFF);
-  if (false == this->use_only_up_down_command_) {
-    this->write_value_(this->input_handle_, 0x8001);
-  }
+  //   if (false == this->use_only_up_down_command_) {
+  //     this->write_value_(this->input_handle_, 0x8001);
+  //   }
 
   this->current_operation = cover::COVER_OPERATION_IDLE;
   this->controlled_ = false;
@@ -293,6 +301,7 @@ bool IdasenDeskControllerComponent::is_at_target_() const {
       if (this->notify_disable_) {
         return !this->controlled_;
       }
+    //   return !this->controlled_;
     default:
       return true;
   }

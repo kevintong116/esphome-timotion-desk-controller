@@ -1,3 +1,8 @@
+Fork of esphome-idasen-desk-controller for TiMOTION bluetooth controller [TWD1 Series](https://www.timotion.com/en/products/accessories/twd1-series).  
+<img src="./twd1.jpg" width="300" />
+
+# Original description:
+
 This project is archived as Idasen Desk is now compatbile with Home Assistant and ESPHome Bluetooth Proxy (https://www.home-assistant.io/integrations/idasen_desk/).
 -------------
 
