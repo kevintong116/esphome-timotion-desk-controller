@@ -50,6 +50,8 @@ class IdasenDeskControllerComponent : public Component, public cover::Cover, pub
   espbt::ESPBTUUID control_service_uuid_ = uuid128_from_string("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
   espbt::ESPBTUUID control_char_uuid_ = uuid128_from_string("6e400002-b5a3-f393-e0a9-e50e24dcca9e");
   uint16_t control_handle_;
+  uint16_t lastHeight;
+  uint16_t lastSpeed;
 
   bool controlled_ = false;
   float position_target_;

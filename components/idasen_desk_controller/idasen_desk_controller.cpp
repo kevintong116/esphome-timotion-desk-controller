@@ -6,7 +6,7 @@
 namespace esphome {
 namespace idasen_desk_controller {
 
-static const char *TAG = "idasen_desk_controller";
+static const char *TAG = "timotion_desk_controller";
 
 static const float DESK_MIN_HEIGHT = 65;
 static const float DESK_MAX_HEIGHT = 130;
@@ -19,12 +19,12 @@ static float transform_position_to_height(float position) { return position * DE
 void IdasenDeskControllerComponent::loop() {}
 
 void IdasenDeskControllerComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up Idasen Desk Controller...");
+  ESP_LOGCONFIG(TAG, "Setting up Timotion Desk Controller...");
   this->set_interval("update_desk", 200, [this]() { this->move_desk_(); });
 }
 
 void IdasenDeskControllerComponent::dump_config() {
-  ESP_LOGCONFIG(TAG, "Idasen Desk Controller:");
+  ESP_LOGCONFIG(TAG, "Timotion Desk Controller:");
   ESP_LOGCONFIG(TAG, "  MAC address        : %s", this->parent()->address_str().c_str());
   ESP_LOGCONFIG(TAG, "  Notifications      : %s", this->notify_disable_ ? "disable" : "enable");
   LOG_COVER("  ", "Desk", this);
@@ -175,8 +175,12 @@ void IdasenDeskControllerComponent::publish_cover_state_(uint8_t *value, uint16_
   uint16_t height = x[3];
   uint16_t speed = x[1];
 
+  if (this->lastHeight == height && this->lastSpeed == speed) return; 
+  this->lastHeight = height;
+  this->lastSpeed = speed;
+
   float position = transform_height_to_position((float) height);
-  //   ESP_LOGCONFIG(TAG, "publish %d %d %d %d", speed, height, position, this->position);
+  ESP_LOGCONFIG(TAG, "publish %d %d %d %d", speed, height, position, this->position);
 
   //   if (speed == 40) {
   if (speed == 64) {
@@ -282,7 +286,7 @@ void IdasenDeskControllerComponent::move_torwards_() {
 }
 
 void IdasenDeskControllerComponent::stop_move_() {
-  this->write_value_(this->control_handle_, 0xFF);
+  this->write_value_(this->control_handle_, 0x0000000000); // not needed?
   //   if (false == this->use_only_up_down_command_) {
   //     this->write_value_(this->input_handle_, 0x8001);
   //   }
