@@ -1,11 +1,11 @@
 external_components:
-  - source:
-      type: local
-      path: components/esphome-timotion-desk-controller/components
-  # - source: github://duchu-net/esphome-timotion-desk-controller@v1.0.0
+  # - source:
+  #     type: local
+  #     path: components/esphome-timotion-desk-controller/components
+  - source: github://duchu-net/esphome-timotion-desk-controller@v0.0.2
 
 esphome:
-  name: esphome-ble-stand-up
+  name: esphome-timotion-desk
   libraries:
     - 'ESP32 BLE Arduino'
 
@@ -26,36 +26,35 @@ ota:
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
-
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: 'Esphome-Web-B489A8'
+    ssid: 'Esphome-TiMOTION-desk'
     password: 'L2i5rbTy5Fa7'
-# captive_portal:
+# captive_portal: # only for arduino framework
 
 globals:
   # To store the Desk Connection Status
-  - id: ble_client_connected
+  - id: desk_client_connected
     type: bool
     initial_value: 'false'
 
 # BEGIN BLUETOOTH DISCOVERY INTEGRATION
 esp32_ble_tracker:
 ble_client:
-  - mac_address: 'CA:A6:27:CF:F8:EE' # Replace with the desk bluetooth mac address
+  - mac_address: '00:00:00:00:00:00' # Replace with the desk bluetooth mac address
     id: timotion_desk
     on_connect:
       then:
         - lambda: |-
-            id(ble_client_connected) = true;
+            id(desk_client_connected) = true;
         - delay: 5s
         - lambda: |-
-            id(desk_move).update();
+            id(desk_state).update();
             id(desk_height).update();
     on_disconnect:
       then:
         - lambda: |-
-            id(ble_client_connected) = false;
+            id(desk_client_connected) = false;
 
 timotion_desk_controller:
   ble_client_id: timotion_desk
@@ -100,8 +99,8 @@ sensor:
   - platform: ble_client
     type: characteristic
     ble_client_id: timotion_desk
-    id: desk_move
-    name: 'Desk Move'
+    id: desk_state
+    name: 'Desk State'
     service_uuid: '6e400001-b5a3-f393-e0a9-e50e24dcca9e'
     characteristic_uuid: '6e400003-b5a3-f393-e0a9-e50e24dcca9e'
     icon: 'mdi:arrow-split-horizontal'
@@ -122,14 +121,14 @@ binary_sensor:
     name: 'Desk Connection'
     icon: 'mdi:bluetooth'
     id: desk_connection
-    lambda: 'return id(ble_client_connected);'
+    lambda: 'return id(desk_client_connected);'
 
   # Desk Moving Status
   - platform: template
     name: 'Desk Moving'
     id: desk_moving
     icon: 'mdi:engine'
-    lambda: 'return abs(id(desk_move).state) == 1;'
+    lambda: 'return abs(id(desk_state).state) == 1;'
     # lambda: |-
-    #   if (id(desk_move).state >= -1 && id(desk_move).state <= 1) return abs(id(desk_move).state) == 1; 
+    #   if (id(desk_state).state >= -1 && id(desk_state).state <= 1) return abs(id(desk_state).state) == 1; 
     #   return invalid;
