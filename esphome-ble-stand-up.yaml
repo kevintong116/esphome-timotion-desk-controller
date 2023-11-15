@@ -2,6 +2,7 @@ external_components:
   - source:
       type: local
       path: components/esphome-idasen-desk-controller/components
+  # - source: github://duchu-net/esphome-timotion-desk-controller@v1.0.0
 
 esphome:
   name: esphome-ble-stand-up
@@ -41,7 +42,7 @@ globals:
 # BEGIN BLUETOOTH DISCOVERY INTEGRATION
 esp32_ble_tracker:
 ble_client:
-  - mac_address: '00:00:00:00:00:00' # Replace with the desk bluetooth mac address
+  - mac_address: 'CA:A6:27:CF:F8:EE' # Replace with the desk bluetooth mac address
     id: timotion_desk
     on_connect:
       then:
@@ -87,6 +88,7 @@ sensor:
     #         return x;    
     #       }
     #       return {};
+    # or just delta filter :D
     filters:
       - delta: 0.1
     lambda: |-
@@ -106,14 +108,6 @@ sensor:
     accuracy_decimals: 0
     update_interval: never
     notify: true
-    # filters:
-    #   - lambda: |- 
-    #       static float last_speed = NAN;
-    #       if (x != last_speed) {
-    #         last_speed = x;
-    #         return x;    
-    #       }
-    #       return {};
     filters:
       - delta: 0.1
     lambda: |-
