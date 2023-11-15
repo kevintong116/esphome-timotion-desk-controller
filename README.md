@@ -47,3 +47,6 @@ external_components:
 
 ## Configuration
 ESPHome `yaml` example: [esphome-timotion-desk-controller.yaml](./esphome-timotion-desk-controller.yaml).
+
+## TiMOTION Trademark Notice
+The TiMOTION name and logo are trademarks of TiMOTION Technology Co. Ltd. All Rights Reserved. Is not part of the licensing for this project.
