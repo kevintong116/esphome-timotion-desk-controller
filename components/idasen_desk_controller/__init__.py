@@ -8,16 +8,16 @@ DEPENDENCIES = ['esp32', 'ble_client']
 AUTO_LOAD = ['cover']
 MULTI_CONF = True
 
-CONF_IDASEN_DESK_CONTROLLER_ID = 'idasen_desk_controller_id'
+CONF_TIMOTION_DESK_CONTROLLER_ID = 'timotion_desk_controller_id'
 CONF_ONLY_UP_DOWN_COMMAND = 'only_up_down_command'
 
-idasen_desk_controller_ns = cg.esphome_ns.namespace('idasen_desk_controller')
+timotion_desk_controller_ns = cg.esphome_ns.namespace('timotion_desk_controller')
 
-IdasenDeskControllerComponent = idasen_desk_controller_ns.class_(
-    'IdasenDeskControllerComponent', cg.Component, cover.Cover, ble_client.BLEClientNode)
+TimotionDeskControllerComponent = timotion_desk_controller_ns.class_(
+    'TimotionDeskControllerComponent', cg.Component, cover.Cover, ble_client.BLEClientNode)
 
 CONFIG_SCHEMA = cv.Schema({
-    cv.GenerateID(): cv.declare_id(IdasenDeskControllerComponent),
+    cv.GenerateID(): cv.declare_id(TimotionDeskControllerComponent),
     cv.Optional(CONF_ONLY_UP_DOWN_COMMAND, False): cv.boolean,
 }).extend(ble_client.BLE_CLIENT_SCHEMA)
 

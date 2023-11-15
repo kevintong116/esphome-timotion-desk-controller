@@ -20,10 +20,10 @@ ble_client:
   - mac_address: "00:00:00:00:00:00"
     id: timotion_desk
 
-idasen_desk_controller:
+timotion_desk_controller:
   ble_client_id: timotion_desk
   only_up_down_command: false
 
 cover:
-  - platform: idasen_desk_controller
+  - platform: timotion_desk_controller
     name: "Desk"

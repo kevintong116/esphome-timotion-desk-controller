@@ -1,7 +1,7 @@
 external_components:
   - source:
       type: local
-      path: components/esphome-idasen-desk-controller/components
+      path: components/esphome-timotion-desk-controller/components
   # - source: github://duchu-net/esphome-timotion-desk-controller@v1.0.0
 
 esphome:
@@ -57,20 +57,20 @@ ble_client:
         - lambda: |-
             id(ble_client_connected) = false;
 
-idasen_desk_controller:
+timotion_desk_controller:
   ble_client_id: timotion_desk
   # Optional -- todo remove
   only_up_down_command: true
 
 cover:
-  - platform: idasen_desk_controller
+  - platform: timotion_desk_controller
     name: 'Desk'
 
 sensor:
   # Desk Height Sensor
   - platform: ble_client
     type: characteristic
-    ble_client_id: idasen_desk
+    ble_client_id: timotion_desk
     id: desk_height
     name: 'Desk Height'
     service_uuid: '6e400001-b5a3-f393-e0a9-e50e24dcca9e'

@@ -10,7 +10,7 @@
 #include <esp_gattc_api.h>
 
 namespace esphome {
-namespace idasen_desk_controller {
+namespace timotion_desk_controller {
 
 namespace espbt = esphome::esp32_ble_tracker;
 
@@ -18,9 +18,9 @@ using namespace ble_client;
 
 espbt::ESPBTUUID uuid128_from_string(std::string value);
 
-class IdasenDeskControllerComponent : public Component, public cover::Cover, public BLEClientNode {
+class TimotionDeskControllerComponent : public Component, public cover::Cover, public BLEClientNode {
  public:
-  IdasenDeskControllerComponent() : Component(){};
+  TimotionDeskControllerComponent() : Component(){};
 
   float get_setup_priority() const override { return setup_priority::LATE; }
   void setup() override;
@@ -68,7 +68,7 @@ class IdasenDeskControllerComponent : public Component, public cover::Cover, pub
   void move_torwards_();
   void stop_move_();
 };
-}  // namespace idasen_desk_controller
+}  // namespace timotion_desk_controller
 }  // namespace esphome
 
 #endif

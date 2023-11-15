@@ -1,10 +1,10 @@
-#include "idasen_desk_controller.h"
+#include "timotion_desk_controller.h"
 #include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
 #include <string>
 
 namespace esphome {
-namespace idasen_desk_controller {
+namespace timotion_desk_controller {
 
 static const char *TAG = "timotion_desk_controller";
 
@@ -16,21 +16,21 @@ static float transform_height_to_position(float height) {
 }
 static float transform_position_to_height(float position) { return position * DESK_MAX_HEIGHT; }
 
-void IdasenDeskControllerComponent::loop() {}
+void TimotionDeskControllerComponent::loop() {}
 
-void IdasenDeskControllerComponent::setup() {
+void TimotionDeskControllerComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up Timotion Desk Controller...");
   this->set_interval("update_desk", 200, [this]() { this->move_desk_(); });
 }
 
-void IdasenDeskControllerComponent::dump_config() {
+void TimotionDeskControllerComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "Timotion Desk Controller:");
   ESP_LOGCONFIG(TAG, "  MAC address        : %s", this->parent()->address_str().c_str());
   ESP_LOGCONFIG(TAG, "  Notifications      : %s", this->notify_disable_ ? "disable" : "enable");
   LOG_COVER("  ", "Desk", this);
 }
 
-void IdasenDeskControllerComponent::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
+void TimotionDeskControllerComponent::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                                                         esp_ble_gattc_cb_param_t *param) {
   switch (event) {
     case ESP_GATTC_WRITE_CHAR_EVT: {
@@ -136,7 +136,7 @@ void IdasenDeskControllerComponent::gattc_event_handler(esp_gattc_cb_event_t eve
   }
 }
 
-void IdasenDeskControllerComponent::write_value_(uint16_t handle, uint64_t value) {
+void TimotionDeskControllerComponent::write_value_(uint16_t handle, uint64_t value) {
   ESP_LOGD(">>>> ", "write_value_");
   uint8_t data[5];
   for (int i = 4; i >= 0; --i) {
@@ -152,7 +152,7 @@ void IdasenDeskControllerComponent::write_value_(uint16_t handle, uint64_t value
   }
 }
 
-void IdasenDeskControllerComponent::read_value_(uint16_t handle) {
+void TimotionDeskControllerComponent::read_value_(uint16_t handle) {
   auto status_read = esp_ble_gattc_read_char(this->parent()->get_gattc_if(), this->parent()->get_conn_id(), handle,
                                              ESP_GATT_AUTH_REQ_NONE);
   if (status_read) {
@@ -161,7 +161,7 @@ void IdasenDeskControllerComponent::read_value_(uint16_t handle) {
   }
 }
 
-cover::CoverTraits IdasenDeskControllerComponent::get_traits() {
+cover::CoverTraits TimotionDeskControllerComponent::get_traits() {
   auto traits = cover::CoverTraits();
   traits.set_is_assumed_state(false);
   traits.set_supports_position(true);
@@ -169,7 +169,7 @@ cover::CoverTraits IdasenDeskControllerComponent::get_traits() {
   return traits;
 }
 
-void IdasenDeskControllerComponent::publish_cover_state_(uint8_t *value, uint16_t value_len) {
+void TimotionDeskControllerComponent::publish_cover_state_(uint8_t *value, uint16_t value_len) {
   std::vector<uint8_t> x(value, value + value_len);
 
   uint16_t height = x[3];
@@ -195,7 +195,7 @@ void IdasenDeskControllerComponent::publish_cover_state_(uint8_t *value, uint16_
   this->publish_state(false);
 }
 
-void IdasenDeskControllerComponent::move_desk_() {
+void TimotionDeskControllerComponent::move_desk_() {
   if (this->notify_disable_) {
     if (this->controlled_ || this->current_operation != cover::COVER_OPERATION_IDLE) {
       this->read_value_(this->output_handle_);
@@ -229,7 +229,7 @@ void IdasenDeskControllerComponent::move_desk_() {
   this->move_torwards_();
 }
 
-void IdasenDeskControllerComponent::control(const cover::CoverCall &call) {
+void TimotionDeskControllerComponent::control(const cover::CoverCall &call) {
   if (this->notify_disable_) {
     this->read_value_(this->output_handle_);
   }
@@ -261,7 +261,7 @@ void IdasenDeskControllerComponent::control(const cover::CoverCall &call) {
   }
 }
 
-void IdasenDeskControllerComponent::start_move_torwards_() {
+void TimotionDeskControllerComponent::start_move_torwards_() {
   this->controlled_ = true;
   if (this->notify_disable_) {
     this->not_moving_loop_ = 0;
@@ -272,7 +272,7 @@ void IdasenDeskControllerComponent::start_move_torwards_() {
   //   }
 }
 
-void IdasenDeskControllerComponent::move_torwards_() {
+void TimotionDeskControllerComponent::move_torwards_() {
   //   if (this->use_only_up_down_command_) {
   if (this->current_operation == cover::COVER_OPERATION_OPENING) {
     //   this->write_value_(this->control_handle_, 0x47);
@@ -285,7 +285,7 @@ void IdasenDeskControllerComponent::move_torwards_() {
   //   }
 }
 
-void IdasenDeskControllerComponent::stop_move_() {
+void TimotionDeskControllerComponent::stop_move_() {
   this->write_value_(this->control_handle_, 0x0000000000); // not needed?
   //   if (false == this->use_only_up_down_command_) {
   //     this->write_value_(this->input_handle_, 0x8001);
@@ -295,7 +295,7 @@ void IdasenDeskControllerComponent::stop_move_() {
   this->controlled_ = false;
 }
 
-bool IdasenDeskControllerComponent::is_at_target_() const {
+bool TimotionDeskControllerComponent::is_at_target_() const {
   switch (this->current_operation) {
     case cover::COVER_OPERATION_OPENING:
       return this->position >= this->position_target_;
@@ -334,5 +334,5 @@ espbt::ESPBTUUID uuid128_from_string(std::string value) {
   return espbt::ESPBTUUID::from_uuid(m_uuid);
 }
 
-}  // namespace idasen_desk_controller
+}  // namespace timotion_desk_controller
 }  // namespace esphome
