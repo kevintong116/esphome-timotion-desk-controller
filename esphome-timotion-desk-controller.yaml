@@ -1,11 +1,12 @@
-external_components:
-  # - source:
-  #     type: local
-  #     path: components/esphome-timotion-desk-controller/components
-  - source: github://duchu-net/esphome-timotion-desk-controller@v0.0.2
+substitutions:
+  device_name: 'esp-office-workstation'
+  friendly_name: 'Workstation'
+  ap_pw: 'L2i5rbTy5Fa7'
+  ssid: !secret wifi_ssid
+  ssid_pw: !secret wifi_password
 
 esphome:
-  name: esphome-timotion-desk
+  name: '${device_name}'
   libraries:
     - 'ESP32 BLE Arduino'
 
@@ -24,13 +25,21 @@ api:
 ota:
 
 wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
+  ssid: $ssid
+  password: $ssid_pw
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: 'Esphome-TiMOTION-desk'
-    password: 'L2i5rbTy5Fa7'
-# captive_portal: # only for arduino framework
+    ssid: AP_${device_name}
+    password: $ap_pw
+# Only for arduino framework
+# captive_portal: 
+
+# BEGIN TIMOTION INTEGRATION
+external_components:
+  # - source:
+  #     type: local
+  #     path: components/esphome-timotion-desk-controller/components
+  - source: github://duchu-net/esphome-timotion-desk-controller@v0.0.2
 
 globals:
   # To store the Desk Connection Status
@@ -38,8 +47,8 @@ globals:
     type: bool
     initial_value: 'false'
 
-# BEGIN BLUETOOTH DISCOVERY INTEGRATION
 esp32_ble_tracker:
+
 ble_client:
   - mac_address: '00:00:00:00:00:00' # Replace with the desk bluetooth mac address
     id: timotion_desk
@@ -63,7 +72,7 @@ timotion_desk_controller:
 
 cover:
   - platform: timotion_desk_controller
-    name: 'Desk'
+    name: '${friendly_name} Desk'
 
 sensor:
   # Desk Height Sensor
@@ -80,11 +89,11 @@ sensor:
     update_interval: never
     notify: true
     # filters:
-    #   - lambda: |- 
+    #   - lambda: |-
     #       static float last_value = NAN;
     #       if (x != last_value) {
     #         last_value = x;
-    #         return x;    
+    #         return x;
     #       }
     #       return {};
     # or just delta filter :D
@@ -130,5 +139,5 @@ binary_sensor:
     icon: 'mdi:engine'
     lambda: 'return abs(id(desk_state).state) == 1;'
     # lambda: |-
-    #   if (id(desk_state).state >= -1 && id(desk_state).state <= 1) return abs(id(desk_state).state) == 1; 
+    #   if (id(desk_state).state >= -1 && id(desk_state).state <= 1) return abs(id(desk_state).state) == 1;
     #   return invalid;
