@@ -172,8 +172,8 @@ cover::CoverTraits TimotionDeskControllerComponent::get_traits() {
 void TimotionDeskControllerComponent::publish_cover_state_(uint8_t *value, uint16_t value_len) {
   std::vector<uint8_t> x(value, value + value_len);
 
-  uint16_t height = x[3];
-  uint16_t speed = x[1];
+  uint16_t height = ((uint16_t)x[6] << 8) | x[7];
+  uint16_t speed = x[4];
 
   if (this->lastHeight == height && this->lastSpeed == speed) return; 
   this->lastHeight = height;
@@ -183,7 +183,7 @@ void TimotionDeskControllerComponent::publish_cover_state_(uint8_t *value, uint1
   ESP_LOGCONFIG(TAG, "publish %d %d %d %d", speed, height, position, this->position);
 
   //   if (speed == 40) {
-  if (speed == 64) {
+  if (speed == 5) {
     this->current_operation = cover::COVER_OPERATION_IDLE;
   } else if (this->position < position) {
     this->current_operation = cover::COVER_OPERATION_OPENING;
