@@ -41,7 +41,7 @@ Reading status is quite simple, just decode height and status hex value from not
 You can install this component with [ESPHome external components feature](https://esphome.io/components/external_components.html) like this:
 ```yaml
 external_components:
-  - source: github://duchu-net/esphome-timotion-desk-controller@v0.0.2
+  - source: github://kevintong116/esphome-timotion-desk-controller@main
   # or clone, and serve from locally
   - source:
       type: local
