@@ -39,7 +39,7 @@ external_components:
   # - source:
   #     type: local
   #     path: components/esphome-timotion-desk-controller/components
-  - source: github://duchu-net/esphome-timotion-desk-controller@v0.0.2
+  - source: github://kevintong116/esphome-timotion-desk-controller@main
 
 globals:
   # To store the Desk Connection Status
@@ -72,7 +72,7 @@ timotion_desk_controller:
 
 cover:
   - platform: timotion_desk_controller
-    name: '${friendly_name} Desk'
+    name: 'Standing Desk'
 
 sensor:
   # Desk Height Sensor
@@ -85,7 +85,7 @@ sensor:
     characteristic_uuid: '6e400003-b5a3-f393-e0a9-e50e24dcca9e'
     icon: 'mdi:arrow-up-down'
     unit_of_measurement: 'cm'
-    accuracy_decimals: 1
+    accuracy_decimals: 0
     update_interval: never
     notify: true
     # filters:
@@ -100,9 +100,14 @@ sensor:
     filters:
       - delta: 0.1
     lambda: |-
-      uint16_t raw_height = x[3];
-      unsigned short height_mm = raw_height;
-      return (float) height_mm;
+      static float last_value = NAN;
+      if (x[1] == 1) {
+        uint16_t raw_height =  ((uint16_t)x[6] << 8) | x[7];
+        unsigned short height_mm = raw_height / 10;
+        last_value = height_mm;
+        return (float) height_mm;
+      }
+      return last_value;
 
   # Desk Speed Sensor
   - platform: ble_client
@@ -119,9 +124,9 @@ sensor:
     filters:
       - delta: 0.1
     lambda: |-
-      uint16_t raw_speed = x[1];
-      if (raw_speed == 65) return -1;
-      if (raw_speed == 66) return 1;
+      uint16_t raw_speed = x[4];
+      if (raw_speed == 101) return -1;
+      if (raw_speed == 85) return 1;
       return 0;
 
 binary_sensor:
