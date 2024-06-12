@@ -138,6 +138,7 @@ void TimotionDeskControllerComponent::gattc_event_handler(esp_gattc_cb_event_t e
 
 void TimotionDeskControllerComponent::write_value_(uint16_t handle, uint64_t value) {
   ESP_LOGD(">>>> ", "write_value_");
+  ESP_LOGD(TAG, "handle, value: %d %llu", this->handle, this->value);
   uint8_t data[5];
   for (int i = 4; i >= 0; --i) {
     data[4 - i] = (value >> (8 * i)) & 0xFF;
