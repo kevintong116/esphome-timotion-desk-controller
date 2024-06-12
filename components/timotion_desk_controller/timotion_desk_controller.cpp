@@ -279,9 +279,9 @@ void TimotionDeskControllerComponent::move_torwards_() {
   //   if (this->use_only_up_down_command_) {
   if (this->current_operation == cover::COVER_OPERATION_OPENING) {
     //   this->write_value_(this->control_handle_, 0x47);
-    this->write_value_(this->control_handle_, 0xd9ff01633c);
+    this->write_value_(this->control_handle_, 0xdd00710000000576);
   } else if (this->current_operation == cover::COVER_OPERATION_CLOSING) {
-    this->write_value_(this->control_handle_, 0xd9ff02603a);
+    this->write_value_(this->control_handle_, 0xdd00700000000575);
   }
   //   } else {
   //     this->write_value_(this->input_handle_, transform_position_to_height(this->position_target_));
