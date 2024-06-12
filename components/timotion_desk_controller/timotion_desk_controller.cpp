@@ -185,12 +185,12 @@ void TimotionDeskControllerComponent::publish_cover_state_(uint8_t *value, uint1
     ESP_LOGCONFIG(TAG, "publish %d %d %d %d", speed, height, position, this->position);
   
     //   if (speed == 40) {
-    if (speed == 5) {
-      this->current_operation = cover::COVER_OPERATION_IDLE;
-    } else if (this->position < position) {
-      this->current_operation = cover::COVER_OPERATION_OPENING;
-    } else if (this->position > position) {
+    if (speed == 101) {
       this->current_operation = cover::COVER_OPERATION_CLOSING;
+    } else if (speed == 85) {
+      this->current_operation = cover::COVER_OPERATION_OPENING;
+    } else if (speed == 5) {
+      this->current_operation = cover::COVER_OPERATION_IDLE;
     }
   
     this->position = position;
