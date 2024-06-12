@@ -94,7 +94,7 @@ void TimotionDeskControllerComponent::gattc_event_handler(esp_gattc_cb_event_t e
         break;
       }
       this->control_handle_ = chr_control->handle;
-
+      ESP_LOGCONFIG(TAG, "control handle: %d", this->control_handle_);
       this->set_timeout("desk_init", 5000, [this]() { this->read_value_(this->output_handle_); });
 
       break;
