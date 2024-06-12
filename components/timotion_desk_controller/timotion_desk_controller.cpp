@@ -172,7 +172,7 @@ cover::CoverTraits TimotionDeskControllerComponent::get_traits() {
 void TimotionDeskControllerComponent::publish_cover_state_(uint8_t *value, uint16_t value_len) {
   std::vector<uint8_t> x(value, value + value_len);
 
-  uint16_t height = ((uint16_t)x[6] << 8) | x[7];
+  uint16_t height = (((uint16_t)x[6] << 8) | x[7]) / 10;
   uint16_t speed = x[4];
 
   if (this->lastHeight == height && this->lastSpeed == speed) return; 
