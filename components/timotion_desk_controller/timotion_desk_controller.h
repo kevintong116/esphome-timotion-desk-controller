@@ -33,9 +33,7 @@ class TimotionDeskControllerComponent : public Component, public cover::Cover, p
   void gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                            esp_ble_gattc_cb_param_t *param) override;
 
-  cover::CoverTraits get_traits() override {
-    traits.set_supports_stop(true);
-  }
+  cover::CoverTraits get_traits() override;
   void control(const cover::CoverCall &call) override;
 
  private:
