@@ -1,7 +1,6 @@
 #include "timotion_desk_controller.h"
 #include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
-#include "cover_traits.h"
 #include <string>
 
 namespace esphome {
