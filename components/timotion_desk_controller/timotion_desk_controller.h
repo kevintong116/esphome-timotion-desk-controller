@@ -34,6 +34,7 @@ class TimotionDeskControllerComponent : public Component, public cover::Cover, p
                            esp_ble_gattc_cb_param_t *param) override;
 
   cover::CoverTraits get_traits() override {
+    auto traits = CoverTraits();
     traits.set_supports_stop(true);
   }
   void control(const cover::CoverCall &call) override;
