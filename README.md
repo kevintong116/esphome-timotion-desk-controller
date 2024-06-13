@@ -6,7 +6,7 @@ Alternative for [Stand Up Pls.](https://play.google.com/store/apps/details?id=co
 ## BT communication protocol - reverse engineering
 
 ```bash
-# example module notifications
+# example module notifications (value part)
 
 When moving
 (0x) 9D-01-70-00-55-64-02-FD-00-00-00-00-00-28
@@ -25,8 +25,11 @@ When idling (no precise desk height information)
               /\ height limit: 20 at upper limit, 40 at lower limit, 00 in the middle
         /\ move status: 02 idling
 
-# example commands send by mobile app
-(WIP)
+# example commands send by mobile app (value part)
+(0x) DD-00-71-00-00-00-05-76
+(0x) DD-00-72-00-00-00-05-77
+                          /\ checksum(?)
+           /\ move direction: 71 up, 72 down
 ```
 Reading status is quite simple, just decode height and status hex value from notification.  
   

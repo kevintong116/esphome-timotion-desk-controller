@@ -94,7 +94,7 @@ void TimotionDeskControllerComponent::gattc_event_handler(esp_gattc_cb_event_t e
         break;
       }
       this->control_handle_ = chr_control->handle;
-
+      ESP_LOGCONFIG(TAG, "control handle: %d", this->control_handle_);
       this->set_timeout("desk_init", 5000, [this]() { this->read_value_(this->output_handle_); });
 
       break;
@@ -138,9 +138,10 @@ void TimotionDeskControllerComponent::gattc_event_handler(esp_gattc_cb_event_t e
 
 void TimotionDeskControllerComponent::write_value_(uint16_t handle, uint64_t value) {
   ESP_LOGD(">>>> ", "write_value_");
-  uint8_t data[5];
-  for (int i = 4; i >= 0; --i) {
-    data[4 - i] = (value >> (8 * i)) & 0xFF;
+  ESP_LOGD(TAG, "handle, value: %d %llu", handle, value);
+  uint8_t data[8];
+  for (int i = 7; i >= 0; --i) {
+    data[7 - i] = (value >> (8 * i)) & 0xFF;
   }
 
   esp_err_t status = ::esp_ble_gattc_write_char(this->parent()->get_gattc_if(), this->parent()->get_conn_id(), handle,
@@ -171,28 +172,31 @@ cover::CoverTraits TimotionDeskControllerComponent::get_traits() {
 
 void TimotionDeskControllerComponent::publish_cover_state_(uint8_t *value, uint16_t value_len) {
   std::vector<uint8_t> x(value, value + value_len);
+  
+  // Check if desk is moving
+  if (x[1] == 1) {
+    uint16_t height = (((uint16_t)x[6] << 8) | x[7]) / 10;
+    uint16_t speed = x[4];
 
-  uint16_t height = ((uint16_t)x[6] << 8) | x[7];
-  uint16_t speed = x[4];
-
-  if (this->lastHeight == height && this->lastSpeed == speed) return; 
-  this->lastHeight = height;
-  this->lastSpeed = speed;
-
-  float position = transform_height_to_position((float) height);
-  ESP_LOGCONFIG(TAG, "publish %d %d %d %d", speed, height, position, this->position);
-
-  //   if (speed == 40) {
-  if (speed == 5) {
-    this->current_operation = cover::COVER_OPERATION_IDLE;
-  } else if (this->position < position) {
-    this->current_operation = cover::COVER_OPERATION_OPENING;
-  } else if (this->position > position) {
-    this->current_operation = cover::COVER_OPERATION_CLOSING;
+    if (this->lastHeight == height && this->lastSpeed == speed) return; 
+    this->lastHeight = height;
+    this->lastSpeed = speed;
+  
+    float position = transform_height_to_position((float) height);
+    ESP_LOGCONFIG(TAG, "publish %d %d %d %d", speed, height, position, this->position);
+  
+    //   if (speed == 40) {
+    if (speed == 101) {
+      this->current_operation = cover::COVER_OPERATION_CLOSING;
+    } else if (speed == 85) {
+      this->current_operation = cover::COVER_OPERATION_OPENING;
+    } else if (speed == 5) {
+      this->current_operation = cover::COVER_OPERATION_IDLE;
+    }
+  
+    this->position = position;
+    this->publish_state(false);
   }
-
-  this->position = position;
-  this->publish_state(false);
 }
 
 void TimotionDeskControllerComponent::move_desk_() {
@@ -276,9 +280,9 @@ void TimotionDeskControllerComponent::move_torwards_() {
   //   if (this->use_only_up_down_command_) {
   if (this->current_operation == cover::COVER_OPERATION_OPENING) {
     //   this->write_value_(this->control_handle_, 0x47);
-    this->write_value_(this->control_handle_, 0xd9ff01633c);
+    this->write_value_(this->control_handle_, 0xdd00710000000576);
   } else if (this->current_operation == cover::COVER_OPERATION_CLOSING) {
-    this->write_value_(this->control_handle_, 0xd9ff02603a);
+    this->write_value_(this->control_handle_, 0xdd00720000000577);
   }
   //   } else {
   //     this->write_value_(this->input_handle_, transform_position_to_height(this->position_target_));
@@ -286,7 +290,7 @@ void TimotionDeskControllerComponent::move_torwards_() {
 }
 
 void TimotionDeskControllerComponent::stop_move_() {
-  this->write_value_(this->control_handle_, 0x0000000000); // not needed?
+  this->write_value_(this->control_handle_, 0xdd00700000000575); // not needed?
   //   if (false == this->use_only_up_down_command_) {
   //     this->write_value_(this->input_handle_, 0x8001);
   //   }
