@@ -186,7 +186,7 @@ void TimotionDeskControllerComponent::publish_cover_state_(uint8_t *value, uint1
       this->lastSpeed = speed;
     
       float position = transform_height_to_position((float) height);
-      ESP_LOGCONFIG(TAG, "publish %d %d %d %d", speed, height, position, this->position);
+      ESP_LOGCONFIG(TAG, "publish %d %d %.0f %.0f", speed, height, position, this->position);
     
       //   if (speed == 40) {
       if (speed == 101) {
