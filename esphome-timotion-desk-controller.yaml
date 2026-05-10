@@ -102,10 +102,10 @@ sensor:
     lambda: |-
       static float last_value = NAN;
       if (x[1] == 1) {
-        uint16_t raw_height =  ((uint16_t)x[6] << 8) | x[7];
-        unsigned short height_mm = raw_height / 10;
-        last_value = height_mm;
-        return (float) height_mm;
+        uint16_t raw_height =  (((uint16_t)x[6] << 8) | x[7]);
+        unsigned short height_cm = raw_height / 10;
+        last_value = height_cm;
+        return (float) height_cm;
       }
       return last_value;
 
@@ -125,9 +125,9 @@ sensor:
       - delta: 0.1
     lambda: |-
       uint16_t raw_speed = x[4];
-      if (raw_speed == 101) return -1;
-      if (raw_speed == 85) return 1;
-      return 0;
+      if (raw_speed == 101 || raw_speed == 37) return -1;
+      if (raw_speed == 85 || raw_speed == 21) return 1;
+      if (raw_speed == 5) return 0;
 
 binary_sensor:
   # Desk Bluetooth Connection Status
