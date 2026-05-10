@@ -21,7 +21,8 @@ When idling (no precise desk height information)
 (0x) 9D-02-70-20-05-64-02-98-04-1D-02-98-04-21-02-C4-03-AB-67
 (0x) 9D-02-70-40-05-64-02-98-04-1D-02-98-04-21-02-C4-03-AB-07
 (0x) 9D-02-70-00-05-64-02-98-04-1D-02-98-04-21-02-C4-03-AB-47
-                       /\ /\ no height information
+                             /\ /\ max height (upper limit) in hex
+                       /\ /\ min height (lower limit) in hex
               /\ height limit: 20 at upper limit, 40 at lower limit, 00 in the middle
         /\ move status: 02 idling
 
