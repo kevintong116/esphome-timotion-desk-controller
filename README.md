@@ -16,23 +16,28 @@ When moving
 (0x) 9D-01-70-00-65-64-03-02-00-00-00-00-00-3E
 (0x) 9D-01-70-00-65-64-02-FE-00-00-00-00-00-39
                        /\ /\ desk height in hex
-                 /\ move status: 65 down, 55 up
+                 /\ move status: 65/25 down, 55/15 up
         /\ move status: 01 moving
 
 When idling (no precise desk height information)
 (0x) 9D-02-70-20-05-64-02-98-04-1D-02-98-04-21-02-C4-03-AB-67
 (0x) 9D-02-70-40-05-64-02-98-04-1D-02-98-04-21-02-C4-03-AB-07
 (0x) 9D-02-70-00-05-64-02-98-04-1D-02-98-04-21-02-C4-03-AB-47
+                                                     /\ /\  saved height 4 in hex
+                                               /\ /\  saved height 3 in hex
+                                         /\ /\  saved height 2 in hex
+                                   /\ /\  saved height 1 in hex
                              /\ /\ max height (upper limit) in hex
                        /\ /\ min height (lower limit) in hex
               /\ height limit: 20 at upper limit, 40 at lower limit, 00 in the middle
         /\ move status: 02 idling
 
 # example commands send by mobile app (value part)
+(0x) DD-00-70-00-00-00-05-75
 (0x) DD-00-71-00-00-00-05-76
 (0x) DD-00-72-00-00-00-05-77
-                          /\ checksum(?)
-           /\ move direction: 71 up, 72 down
+                          /\ checksum
+           /\ move direction: 70 stop, 71 up, 72 down
 ```
 Reading status is quite simple, just decode height and status hex value from notification.  
   
