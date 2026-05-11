@@ -2,7 +2,9 @@ Fork of [esphome-idasen-desk-controller](https://github.com/j5lien/esphome-idase
 Alternative for [Stand Up Pls.](https://play.google.com/store/apps/details?id=com.timotion.standuppls) android app.  
  
 <img src="./twd1.jpg" height="200" />
-  
+
+<img src="./TDH6PR.jpg" height="200" />
+
 ## BT communication protocol - reverse engineering
 
 ```bash
@@ -35,10 +37,11 @@ When idling (no precise desk height information)
 Reading status is quite simple, just decode height and status hex value from notification.  
   
 ## Dependencies
-* This component requires an [ESP32 device](https://esphome.io/devices/esp32.html).
-* [ESPHome 2021.10.0 or higher](https://github.com/esphome/esphome/releases).
-* bluetooth module [TiMOTION TWD1](https://www.timotion.com/en/products/accessories/twd1-series).
-
+* This component requires an [ESP32 device](https://esphome.io/devices/esp32.html)
+* [ESPHome 2021.10.0 or higher](https://github.com/esphome/esphome/releases)
+* bluetooth module [TiMOTION TWD1](https://www.timotion.com/en/products/accessories/twd1-series)
+* Control Box: [TC15S](https://www.timotion.com/en/products/control-boxes/tc15s-series)
+* Controller: [TDH6PR](https://www.timotion.com/en/products/controls/tdh6pr-series)
 ## Installation
 ! If necessary, just follow original instruction of [esphome-idasen-desk-controller](https://github.com/j5lien/esphome-idasen-desk-controller)
 
