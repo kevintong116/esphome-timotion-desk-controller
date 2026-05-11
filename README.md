@@ -39,7 +39,7 @@ Reading status is quite simple, just decode height and status hex value from not
 ## Dependencies
 * This component requires an [ESP32 device](https://esphome.io/devices/esp32.html)
 * [ESPHome 2021.10.0 or higher](https://github.com/esphome/esphome/releases)
-* bluetooth module [TiMOTION TWD1](https://www.timotion.com/en/products/accessories/twd1-series)
+* Bluetooth module [TiMOTION TWD1](https://www.timotion.com/en/products/accessories/twd1-series)
 * Control Box: [TC15S](https://www.timotion.com/en/products/control-boxes/tc15s-series)
 * Controller: [TDH6PR](https://www.timotion.com/en/products/controls/tdh6pr-series)
 ## Installation
