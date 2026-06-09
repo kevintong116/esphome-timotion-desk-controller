@@ -11,27 +11,27 @@ static const char *TAG = "timotion_desk_controller";
 // Lowest physical desk height (cm) for your model.
 // Using 66 so that 66 cm maps to position 0.0 and
 // the "close" command (target 0%) can be satisfied.
-static float DESK_MIN_HEIGHT = 66;
-static float DESK_MAX_HEIGHT = 130;
+static float DESK_MIN_HEIGHT = 66.0;
+static float DESK_MAX_HEIGHT = 130.0;
 
 static float transform_height_to_position(float height) {
   // Map absolute height (cm) to a 0.0–1.0 cover position.
   // 0.0 = DESK_MIN_HEIGHT (fully down / closed)
   // 1.0 = DESK_MAX_HEIGHT (fully up / open)
   float pos = (height - DESK_MIN_HEIGHT) / (DESK_MAX_HEIGHT - DESK_MIN_HEIGHT);
-  if (pos < 0.0f)
-    pos = 0.0f;
-  if (pos > 1.0f)
-    pos = 1.0f;
+  if (pos < 0.00f)
+    pos = 0.00f;
+  if (pos > 1.00f)
+    pos = 1.00f;
   return pos;
 }
 
 static float transform_position_to_height(float position) {
   // Inverse of transform_height_to_position.
-  if (position < 0.0f)
-    position = 0.0f;
-  if (position > 1.0f)
-    position = 1.0f;
+  if (position < 0.00f)
+    position = 0.00f;
+  if (position > 1.00f)
+    position = 1.00f;
   return DESK_MIN_HEIGHT + position * (DESK_MAX_HEIGHT - DESK_MIN_HEIGHT);
 }
 
@@ -39,6 +39,7 @@ void TimotionDeskControllerComponent::loop() {}
 
 void TimotionDeskControllerComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up Timotion Desk Controller...");
+  this->stop_move_();
   this->set_interval("update_desk", 200, [this]() { this->move_desk_(); });
 }
 
@@ -62,6 +63,32 @@ void TimotionDeskControllerComponent::gattc_event_handler(esp_gattc_cb_event_t e
     case ESP_GATTC_OPEN_EVT: {
       if (param->open.status == ESP_GATT_OK) {
         ESP_LOGI(TAG, "[%s] Connected successfully!", this->get_name().c_str());
+		    
+		// ping the desk to obtain current height
+		uint8_t ping_counter_ = 0;
+		ESP_LOGI(TAG, "Waiting 5 seconds before starting the initial height request sequence...");
+		// 1. Wrap everything inside a 5000ms (5s) timeout block
+		this->set_timeout("delayed_ping_start", 5000, [this]() {
+			ESP_LOGI(TAG, "5s delay complete. Starting initial height request sequence...");
+			// Set a repeating loop named "desk_ping_init" running every 100ms
+			this->set_interval("desk_ping_init", 200, [this]() {
+				// Stop condition: 25 pings = 5.0 second elapsed
+				if (this->ping_counter_ >= 25) {
+					this->ping_counter_ = 0;
+				    this->cancel_interval("desk_ping_init"); // Self-destruct the loop
+				    ESP_LOGI(TAG, "Initial ping sequence complete. Standing desk is initialized.");
+				    return;
+				}
+				// Handshake command payload (dd 01 00 00 00 00 00 00)
+				uint8_t ping_cmd[8] = {0xDD, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+				ESP_LOGI(TAG, "Ping...........................................");
+				// Send to the desk's control handle
+				this->write_value_(this->control_handle_, ping_cmd, sizeof(ping_cmd));
+				// Increment tracker
+				this->ping_counter_++;
+			});
+		});
+		
         break;
       }
       break;
@@ -122,7 +149,6 @@ void TimotionDeskControllerComponent::gattc_event_handler(esp_gattc_cb_event_t e
       this->control_handle_ = chr_control->handle;
       ESP_LOGCONFIG(TAG, "control handle: %d", this->control_handle_);
       this->set_timeout("desk_init", 5000, [this]() { this->read_value_(this->output_handle_); });
-
       break;
     }
 
@@ -199,7 +225,7 @@ cover::CoverTraits TimotionDeskControllerComponent::get_traits() {
 void TimotionDeskControllerComponent::publish_cover_state_(uint8_t *value, uint16_t value_len) {
   // Timotion "simple" notification format as observed from the working
   // ble_client sensors in the example YAML:
-  //   x[4] : motion/state (65 = down, 55 = up, otherwise idle)
+  //   x[4] : motion/state (65/25 = down, 55/15 = up, 05 = report current height, otherwise idle)
   //   x[3] : current height (cm)
   if (value_len < 4) {
     return;
@@ -212,7 +238,7 @@ void TimotionDeskControllerComponent::publish_cover_state_(uint8_t *value, uint1
 	  
 	  if (x[1] == 1) {
 		  uint16_t speed_raw = x[4];
-		  uint16_t height = (((uint16_t)x[6] << 8) | x[7]) / 10;;
+		  float height = (((uint16_t)x[6] << 8) | x[7]) / 10.0f;
 
 		  if (this->lastHeight == height && this->lastSpeed == speed_raw)
 			return;
@@ -220,8 +246,8 @@ void TimotionDeskControllerComponent::publish_cover_state_(uint8_t *value, uint1
 		  this->lastHeight = height;
 		  this->lastSpeed = speed_raw;
 
-		  float position = transform_height_to_position(static_cast<float>(height));
-		  ESP_LOGCONFIG(TAG, "publish speed=%d height=%d pos=%f target=%f", speed_raw, height, position,
+		  float position = transform_height_to_position(height);
+		  ESP_LOGCONFIG(TAG, "publish speed=%d height=%.1fcm pos=%.3f target=%.3f", speed_raw, height, position,
 						this->position_target_);
 
 		  if (speed_raw == 101 || speed_raw == 37) {
@@ -230,7 +256,7 @@ void TimotionDeskControllerComponent::publish_cover_state_(uint8_t *value, uint1
 		  } else if (speed_raw == 85 || speed_raw == 21) {
 			// Moving up
 			this->current_operation = cover::COVER_OPERATION_OPENING;
-		  } else if (speed_raw == 5){
+		  } else if (speed_raw == 69 || speed_raw == 5){
 			// Idle or unknown
 			this->current_operation = cover::COVER_OPERATION_IDLE;
 		  }
@@ -240,12 +266,12 @@ void TimotionDeskControllerComponent::publish_cover_state_(uint8_t *value, uint1
 	  }
 	  
 	  if (x[1] == 2) {
-		  DESK_MIN_HEIGHT = (((uint16_t)x[6] << 8) | x[7]) / 10;
-		  DESK_MAX_HEIGHT = (((uint16_t)x[8] << 8) | x[9]) / 10;
-		  float M1 = (((uint16_t)x[10] << 8) | x[11]) / 10;
-		  float M2 = (((uint16_t)x[12] << 8) | x[13]) / 10;
-		  float M3 = (((uint16_t)x[14] << 8) | x[15]) / 10;
-		  float M4 = (((uint16_t)x[16] << 8) | x[17]) / 10;
+		  DESK_MIN_HEIGHT = (((uint16_t)x[6] << 8) | x[7]) / 10.0f;
+		  DESK_MAX_HEIGHT = (((uint16_t)x[8] << 8) | x[9]) / 10.0f;
+		  float M1 = (((uint16_t)x[10] << 8) | x[11]) / 10.0f;
+		  float M2 = (((uint16_t)x[12] << 8) | x[13]) / 10.0f;
+		  float M3 = (((uint16_t)x[14] << 8) | x[15]) / 10.0f;
+		  float M4 = (((uint16_t)x[16] << 8) | x[17]) / 10.0f;
 		  ESP_LOGCONFIG(TAG, "DESK MIN HEIGHT %.1f DESK MAX HEIGHT %.1f", DESK_MIN_HEIGHT, DESK_MAX_HEIGHT);
 		  ESP_LOGCONFIG(TAG, "M1 %.1f M2 %.1f M3 %.1f M4 %.1f", M1, M2, M3, M4);
 	  }
@@ -281,7 +307,7 @@ void TimotionDeskControllerComponent::move_desk_() {
     }
   }
 
-  ESP_LOGD(TAG, "Update Desk - Move from %.0f to %.0f", this->position * 100, this->position_target_ * 100);
+  ESP_LOGD(TAG, "Update Desk - Move from %.3f to %.3f", this->position * 100, this->position_target_ * 100);
   this->move_torwards_();
 }
 
@@ -322,23 +348,66 @@ void TimotionDeskControllerComponent::start_move_torwards_() {
   if (this->notify_disable_) {
     this->not_moving_loop_ = 0;
   }
-  //   if (false == this->use_only_up_down_command_) {
-  //     this->write_value_(this->control_handle_, 0xFE);
-  //     this->write_value_(this->control_handle_, 0xFF);
-  //   }
+}
+
+void TimotionDeskControllerComponent::send_absolute_height_(uint16_t height_mm) {
+  // Byte 3 = 0x04 tells the desk to drive to an absolute height position
+  // Byte 3 = 0x01, 0x02 or 0x08 might also work
+  uint8_t cmd[8] = {0xDD, 0x00, 0x70, 0x04, 0x00, 0x00, 0x05, 0x00};
+  
+  // Set target height payload bytes
+  cmd[4] = (height_mm >> 8) & 0xFF; // High byte
+  cmd[5] = height_mm & 0xFF;        // Low byte
+
+  // Calculate the 7-bit checksum
+  uint8_t sum = 0;
+  for (size_t i = 1; i < 7; i++) {
+    sum += cmd[i];
+  }
+  
+  // Apply the 0x7F mask to checksum
+  cmd[7] = sum & 0x7F; 
+
+  ESP_LOGD(TAG, "Sending absolute height target: %d mm", height_mm);
+  this->write_value_(this->control_handle_, cmd, sizeof(cmd));
 }
 
 void TimotionDeskControllerComponent::move_torwards_() {
   // Use the module-style commands captured from the mobile app.
   // For now, send fixed UP/DOWN frames as observed from the app.
+  // checksum = calculated_sum (Bytes 1 to 6) & 0x7F (7-Bit Masked Sum)
   static const uint8_t CMD_UP[] = {
       0xdd, 0x00, 0x71, 0x00, 0x00, 0x00, 0x05, 0x76};
   static const uint8_t CMD_DOWN[] = {
       0xdd, 0x00, 0x72, 0x00, 0x00, 0x00, 0x05, 0x77};
-
+  static const uint8_t CMD_TOP[] = {
+      0xdd, 0x00, 0x74, 0x00, 0x00, 0x00, 0x05, 0x79};
+  static const uint8_t CMD_BOTTOM[] = {
+      0xdd, 0x00, 0x78, 0x00, 0x00, 0x00, 0x05, 0x7d};
+  static const uint8_t CMD_M1[] = {
+	  0xdd, 0x00, 0x70, 0x01, 0x03, 0x06, 0x05, 0x7f};
+  static const uint8_t CMD_M2[] = {
+	  0xdd, 0x00, 0x70, 0x02, 0x03, 0xed, 0x05, 0x67};
+  static const uint8_t CMD_M4[] = {
+	  0xdd, 0x00, 0x70, 0x04, 0x03, 0xed, 0x05, 0x69};
+  static const uint8_t CMD_M5[] = {
+	  0xdd, 0x00, 0x70, 0x01, 0x02, 0x9b, 0x05, 0x13};	
+  static const uint8_t CMD_M6[] = {
+	  0xdd, 0x00, 0x70, 0x04, 0x02, 0x94, 0x05, 0x0f};	  
+  static const uint8_t CMD_M7[] = {
+	  0xdd, 0x00, 0x70, 0x04, 0x03, 0x3b, 0x05, 0x37};
+  static const uint8_t CMD_M8[] = {
+	  0xdd, 0x00, 0x70, 0x08, 0x02, 0x94, 0x05, 0x13};	
+  static const uint8_t CMD_M9[] = {
+	  0xdd, 0x00, 0x70, 0x04, 0x03, 0xf2, 0x05, 0x6e};	
+  static const uint8_t CMD_M10[] = {
+	  0xdd, 0x00, 0x70, 0x04, 0x04, 0x06, 0x05, 0x03};	
+  
   if (this->current_operation == cover::COVER_OPERATION_OPENING) {
+//    this->write_value_(this->control_handle_, CMD_UP, sizeof(CMD_UP));
     this->write_value_(this->control_handle_, CMD_UP, sizeof(CMD_UP));
   } else if (this->current_operation == cover::COVER_OPERATION_CLOSING) {
+//    this->write_value_(this->control_handle_, CMD_DOWN, sizeof(CMD_DOWN));
     this->write_value_(this->control_handle_, CMD_DOWN, sizeof(CMD_DOWN));
   }
 }
@@ -347,9 +416,7 @@ void TimotionDeskControllerComponent::stop_move_() {
   static const uint8_t CMD_STOP[] = {
 	  0xdd, 0x00, 0x70, 0x00, 0x00, 0x00, 0x05, 0x75};
   this->write_value_(this->control_handle_, CMD_STOP, sizeof(CMD_STOP));
-  //   if (false == this->use_only_up_down_command_) {
-  //     this->write_value_(this->input_handle_, 0x8001);
-  //   }
+
 
   this->current_operation = cover::COVER_OPERATION_IDLE;
   this->controlled_ = false;
