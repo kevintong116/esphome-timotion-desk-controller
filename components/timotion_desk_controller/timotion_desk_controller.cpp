@@ -19,19 +19,15 @@ static float transform_height_to_position(float height) {
   // 0.0 = DESK_MIN_HEIGHT (fully down / closed)
   // 1.0 = DESK_MAX_HEIGHT (fully up / open)
   float pos = (height - DESK_MIN_HEIGHT) / (DESK_MAX_HEIGHT - DESK_MIN_HEIGHT);
-  if (pos < 0.00f)
-    pos = 0.00f;
-  if (pos > 1.00f)
-    pos = 1.00f;
+  if (pos < 0.00f) pos = 0.00f;
+  if (pos > 1.00f) pos = 1.00f;
   return pos;
 }
 
 static float transform_position_to_height(float position) {
   // Inverse of transform_height_to_position.
-  if (position < 0.00f)
-    position = 0.00f;
-  if (position > 1.00f)
-    position = 1.00f;
+  if (position < 0.00f) position = 0.00f;
+  if (position > 1.00f) position = 1.00f;
   return DESK_MIN_HEIGHT + position * (DESK_MAX_HEIGHT - DESK_MIN_HEIGHT);
 }
 
@@ -40,7 +36,6 @@ void TimotionDeskControllerComponent::loop() {}
 void TimotionDeskControllerComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up Timotion Desk Controller...");
   this->stop_move_();
-  this->set_interval("update_desk", 200, [this]() { this->move_desk_(); });
 }
 
 void TimotionDeskControllerComponent::dump_config() {
@@ -227,9 +222,7 @@ void TimotionDeskControllerComponent::publish_cover_state_(uint8_t *value, uint1
   // ble_client sensors in the example YAML:
   //   x[4] : motion/state (65/25 = down, 55/15 = up, 05 = report current height, otherwise idle)
   //   x[3] : current height (cm)
-  if (value_len < 4) {
-    return;
-  }
+  if (value_len < 4) return;
 
   std::vector<uint8_t> x(value, value + value_len);
 
@@ -274,41 +267,9 @@ void TimotionDeskControllerComponent::publish_cover_state_(uint8_t *value, uint1
 		  float M4 = (((uint16_t)x[16] << 8) | x[17]) / 10.0f;
 		  ESP_LOGCONFIG(TAG, "DESK MIN HEIGHT %.1f DESK MAX HEIGHT %.1f", DESK_MIN_HEIGHT, DESK_MAX_HEIGHT);
 		  ESP_LOGCONFIG(TAG, "M1 %.1f M2 %.1f M3 %.1f M4 %.1f", M1, M2, M3, M4);
+		  this->publish_state(false);
 	  }
   }
-}
-void TimotionDeskControllerComponent::move_desk_() {
-  if (this->notify_disable_) {
-    if (this->controlled_ || this->current_operation != cover::COVER_OPERATION_IDLE) {
-      this->read_value_(this->output_handle_);
-    }
-  }
-
-  if (!this->controlled_) {
-    return;
-  }
-
-  // Check if target has been reached
-  if (this->is_at_target_()) {
-    ESP_LOGD(TAG, "Update Desk - target reached");
-    this->stop_move_();
-    return;
-  }
-
-  if (this->notify_disable_) {
-    if (this->current_operation == cover::COVER_OPERATION_IDLE) {
-      this->not_moving_loop_++;
-      if (this->not_moving_loop_ > 4) {
-        ESP_LOGD(TAG, "Update Desk - desk not moving");
-        this->stop_move_();
-      }
-    } else {
-      this->not_moving_loop_ = 0;
-    }
-  }
-
-  ESP_LOGD(TAG, "Update Desk - Move from %.3f to %.3f", this->position * 100, this->position_target_ * 100);
-  this->move_torwards_();
 }
 
 void TimotionDeskControllerComponent::control(const cover::CoverCall &call) {
@@ -316,37 +277,44 @@ void TimotionDeskControllerComponent::control(const cover::CoverCall &call) {
     this->read_value_(this->output_handle_);
   }
 
-  if (call.get_position().has_value()) {
-    if (this->current_operation != cover::COVER_OPERATION_IDLE) {
-      this->stop_move_();
-    }
-
-    this->position_target_ = *call.get_position();
-
-    if (this->position == this->position_target_) {
-      return;
-    }
-
-    if (this->position_target_ > this->position) {
-      this->current_operation = cover::COVER_OPERATION_OPENING;
-    } else {
-      this->current_operation = cover::COVER_OPERATION_CLOSING;
-    }
-
-    this->start_move_torwards_();
-    return;
-  }
-
   if (call.get_stop()) {
     ESP_LOGD(TAG, "Cover control - STOP");
     this->stop_move_();
+	return;
   }
-}
+  
+  auto pos_val = call.get_position();
+  if (pos_val.has_value()) {
+    auto pos = *pos_val;
 
-void TimotionDeskControllerComponent::start_move_torwards_() {
-  this->controlled_ = true;
-  if (this->notify_disable_) {
-    this->not_moving_loop_ = 0;
+    if (pos == cover::COVER_OPEN || pos == 1) {
+	  static const uint8_t CMD_UP[] = {0xdd, 0x00, 0x71, 0x00, 0x00, 0x00, 0x05, 0x76};
+      this->write_value_(this->control_handle_, CMD_UP, sizeof(CMD_UP));
+      this->current_operation = cover::COVER_OPERATION_OPENING;
+    } 
+	else if (pos == cover::COVER_CLOSED || pos == 0) {
+	  static const uint8_t CMD_DOWN[] = {0xdd, 0x00, 0x72, 0x00, 0x00, 0x00, 0x05, 0x77};
+      this->write_value_(this->control_handle_, CMD_DOWN, sizeof(CMD_DOWN));
+      this->current_operation = cover::COVER_OPERATION_CLOSING;
+    } 
+	else {
+	  uint16_t height_mm = static_cast<uint16_t>(transform_position_to_height(pos) * 10.0f);
+      
+	  // Determine direction for state updates
+      if (pos > this->position) {
+        this->current_operation = cover::COVER_OPERATION_OPENING;
+      } else {
+        this->current_operation = cover::COVER_OPERATION_CLOSING;
+      }
+	 
+	  this->send_absolute_height_(height_mm);
+	  
+    }
+
+    this->position_target_ = pos;
+	ESP_LOGD(TAG, "Update Desk - Move from %.3f to %.3f", this->position * 100, this->position_target_ * 100);
+
+    return;
   }
 }
 
@@ -373,6 +341,7 @@ void TimotionDeskControllerComponent::send_absolute_height_(uint16_t height_mm) 
 }
 
 void TimotionDeskControllerComponent::move_torwards_() {
+  // ******************* Not used *******************
   // Use the module-style commands captured from the mobile app.
   // For now, send fixed UP/DOWN frames as observed from the app.
   // checksum = calculated_sum (Bytes 1 to 6) & 0x7F (7-Bit Masked Sum)
@@ -388,20 +357,10 @@ void TimotionDeskControllerComponent::move_torwards_() {
 	  0xdd, 0x00, 0x70, 0x01, 0x03, 0x06, 0x05, 0x7f};
   static const uint8_t CMD_M2[] = {
 	  0xdd, 0x00, 0x70, 0x02, 0x03, 0xed, 0x05, 0x67};
-  static const uint8_t CMD_M4[] = {
+  static const uint8_t CMD_M3[] = {
 	  0xdd, 0x00, 0x70, 0x04, 0x03, 0xed, 0x05, 0x69};
-  static const uint8_t CMD_M5[] = {
-	  0xdd, 0x00, 0x70, 0x01, 0x02, 0x9b, 0x05, 0x13};	
-  static const uint8_t CMD_M6[] = {
-	  0xdd, 0x00, 0x70, 0x04, 0x02, 0x94, 0x05, 0x0f};	  
-  static const uint8_t CMD_M7[] = {
-	  0xdd, 0x00, 0x70, 0x04, 0x03, 0x3b, 0x05, 0x37};
-  static const uint8_t CMD_M8[] = {
+  static const uint8_t CMD_M4[] = {
 	  0xdd, 0x00, 0x70, 0x08, 0x02, 0x94, 0x05, 0x13};	
-  static const uint8_t CMD_M9[] = {
-	  0xdd, 0x00, 0x70, 0x04, 0x03, 0xf2, 0x05, 0x6e};	
-  static const uint8_t CMD_M10[] = {
-	  0xdd, 0x00, 0x70, 0x04, 0x04, 0x06, 0x05, 0x03};	
   
   if (this->current_operation == cover::COVER_OPERATION_OPENING) {
 //    this->write_value_(this->control_handle_, CMD_UP, sizeof(CMD_UP));
@@ -413,29 +372,12 @@ void TimotionDeskControllerComponent::move_torwards_() {
 }
 
 void TimotionDeskControllerComponent::stop_move_() {
-  static const uint8_t CMD_STOP[] = {
+  static const uint8_t CMD_STOP[] = {	  
 	  0xdd, 0x00, 0x70, 0x00, 0x00, 0x00, 0x05, 0x75};
   this->write_value_(this->control_handle_, CMD_STOP, sizeof(CMD_STOP));
 
-
   this->current_operation = cover::COVER_OPERATION_IDLE;
-  this->controlled_ = false;
-}
-
-bool TimotionDeskControllerComponent::is_at_target_() const {
-  switch (this->current_operation) {
-    case cover::COVER_OPERATION_OPENING:
-      return this->position >= this->position_target_;
-    case cover::COVER_OPERATION_CLOSING:
-      return this->position <= this->position_target_;
-    case cover::COVER_OPERATION_IDLE:
-      if (this->notify_disable_) {
-        return !this->controlled_;
-      }
-    //   return !this->controlled_;
-    default:
-      return true;
-  }
+  this->publish_state(false);
 }
 
 espbt::ESPBTUUID uuid128_from_string(std::string value) {

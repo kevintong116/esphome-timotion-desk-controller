@@ -17,7 +17,7 @@ When moving
 (0x) 9D-01-70-00-65-64-02-FE-00-00-00-00-00-39
 (0x) 9D-01-70-00-05-64-03-64-00-00-00-00-00-39
                        /\ /\ desk height in hex
-                 /\ status: 65/25 moving down, 55/15 moving up, 05 reporting current height
+                 /\ status: 65/25 moving down, 55/15 moving up, 05 reporting current height only
         /\ move status: 01 moving
 
 When idling (no precise desk height information)
@@ -37,12 +37,14 @@ When idling (no precise desk height information)
 (0x) DD-00-70-00-00-00-05-75
 (0x) DD-00-71-00-00-00-05-76
 (0x) DD-00-72-00-00-00-05-77
-                          /\ checksum
+(0x) DD-00-74-00-00-00-05-79
+(0x) DD-00-78-00-00-00-05-7d
+                          /\ checksum with 0x7F mask
            /\ move direction: 70 stop, 71 up, 72 down
 
 (0x) DD-00-70-04-03-ed-05-69
 (0x) DD-00-70-04-04-06-05-03
-                          /\ checksum
+                          /\ checksum with 0x7F mask
                  /\ /\ target height in hex
            /\ /\ 70-04 command to target height
 ```
