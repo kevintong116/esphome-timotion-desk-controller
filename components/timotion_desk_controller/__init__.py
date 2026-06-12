@@ -9,7 +9,6 @@ AUTO_LOAD = ['cover']
 MULTI_CONF = True
 
 CONF_TIMOTION_DESK_CONTROLLER_ID = 'timotion_desk_controller_id'
-CONF_ONLY_UP_DOWN_COMMAND = 'only_up_down_command'
 
 timotion_desk_controller_ns = cg.esphome_ns.namespace('timotion_desk_controller')
 
@@ -18,7 +17,6 @@ TimotionDeskControllerComponent = timotion_desk_controller_ns.class_(
 
 CONFIG_SCHEMA = cv.Schema({
     cv.GenerateID(): cv.declare_id(TimotionDeskControllerComponent),
-    cv.Optional(CONF_ONLY_UP_DOWN_COMMAND, False): cv.boolean,
 }).extend(ble_client.BLE_CLIENT_SCHEMA)
 
 async def to_code(config):
@@ -26,4 +24,3 @@ async def to_code(config):
     await cg.register_component(var, config)
     await ble_client.register_ble_node(var, config)
 
-    cg.add(var.use_only_up_down_command(config[CONF_ONLY_UP_DOWN_COMMAND]))
