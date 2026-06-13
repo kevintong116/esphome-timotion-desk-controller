@@ -16,22 +16,22 @@ When moving
 (0x) 9D-01-70-00-65-64-03-02-00-00-00-00-00-3E
 (0x) 9D-01-70-00-65-64-02-FE-00-00-00-00-00-39
 (0x) 9D-01-70-00-05-64-03-64-00-00-00-00-00-39
-                       /\ /\ desk height in hex
-                 /\ status: 65/25 moving down, 55/15 moving up, 05 reporting current height only
+                       /\ /\ desk height (mm) in hex (e.g. 02FD = 765mm)
+                 /\ status: 65/25 moving down, 55/15 moving up, 05 idling and reporting current height
         /\ move status: 01 moving
 
 When idling (no precise desk height information)
 (0x) 9D-02-70-20-05-64-02-98-04-1D-02-98-04-21-02-C4-03-AB-67
 (0x) 9D-02-70-40-05-64-02-98-04-1D-02-98-04-21-02-C4-03-AB-07
 (0x) 9D-02-70-00-05-64-02-98-04-1D-02-98-04-21-02-C4-03-AB-47
-                                                     /\ /\  saved height 4 in hex
-                                               /\ /\  saved height 3 in hex
-                                         /\ /\  saved height 2 in hex
-                                   /\ /\  saved height 1 in hex
-                             /\ /\ max height (upper limit) in hex
-                       /\ /\ min height (lower limit) in hex
-              /\ height limit: 20 at upper limit, 40 at lower limit, 00 in the middle
-        /\ move status: 02 idling
+                                                     /\ /\  saved height 4 (mm) in hex
+                                               /\ /\  saved height 3 (mm) in hex
+                                         /\ /\  saved height 2 (mm) in hex
+                                   /\ /\  saved height 1 (mm) in hex
+                             /\ /\ max height (mm) in hex
+                       /\ /\ min height (mm) in hex
+              /\ height limit: 20 at max height, 40 at min height, 00 in the middle
+        /\ move status: 02 idling and reporting stored settings
 
 # example commands send by mobile app (value part)
 (0x) DD-00-70-00-00-00-05-75
@@ -40,7 +40,7 @@ When idling (no precise desk height information)
 (0x) DD-00-74-00-00-00-05-79
 (0x) DD-00-78-00-00-00-05-7d
                           /\ checksum with 0x7F mask
-           /\ move direction: 70 stop, 71 up, 72 down
+           /\ move direction: 70 stop, 71 up, 72 down, 74 move to max height, 78 move to min height
 
 (0x) DD-00-70-04-03-ed-05-69
 (0x) DD-00-70-04-04-06-05-03
