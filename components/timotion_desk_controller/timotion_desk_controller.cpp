@@ -222,7 +222,7 @@ void TimotionDeskControllerComponent::publish_cover_state_(uint8_t *value, uint1
   // ble_client sensors in the example YAML:
   //   x[4] : motion/state (65/25 = down, 55/15 = up, 05 = report current height, otherwise idle)
   //   x[3] : current height (cm)
-  if (value_len < 4) return;
+  if (value_len < 14) return;
 
   std::vector<uint8_t> x(value, value + value_len);
 
@@ -253,6 +253,7 @@ void TimotionDeskControllerComponent::publish_cover_state_(uint8_t *value, uint1
 			// Idle or unknown
 			this->current_operation = cover::COVER_OPERATION_IDLE;
 			this->cancel_interval("move_desk");
+			this->stop_move_();
 		  }
 
 		  this->position = position;
@@ -286,39 +287,39 @@ void TimotionDeskControllerComponent::control(const cover::CoverCall &call) {
   
   auto pos_val = call.get_position();
   if (pos_val.has_value()) {
+	this->cancel_interval("move_desk");
     auto pos = *pos_val;
-
+	this->position_target_ = pos;
+	
     if (pos == cover::COVER_OPEN || pos == 1) {
 	  static const uint8_t CMD_UP[] = {0xdd, 0x00, 0x71, 0x00, 0x00, 0x00, 0x05, 0x76};
 	  this->set_interval("move_desk", 200, [this]() {
-		  this->write_value_(this->control_handle_, CMD_UP, sizeof(CMD_UP)); 
-		  });
+		this->write_value_(this->control_handle_, CMD_UP, sizeof(CMD_UP)); 
+		});
 //      this->write_value_(this->control_handle_, CMD_UP, sizeof(CMD_UP));
       this->current_operation = cover::COVER_OPERATION_OPENING;
     } 
 	else if (pos == cover::COVER_CLOSED || pos == 0) {
 	  static const uint8_t CMD_DOWN[] = {0xdd, 0x00, 0x72, 0x00, 0x00, 0x00, 0x05, 0x77};
 	  this->set_interval("move_desk", 200, [this]() {
-		  this->write_value_(this->control_handle_, CMD_DOWN, sizeof(CMD_DOWN)); 
-		  });
+		this->write_value_(this->control_handle_, CMD_DOWN, sizeof(CMD_DOWN)); 
+		});
 //    this->write_value_(this->control_handle_, CMD_DOWN, sizeof(CMD_DOWN));
       this->current_operation = cover::COVER_OPERATION_CLOSING;
     } 
 	else {
-	  uint16_t height_mm = static_cast<uint16_t>(transform_position_to_height(pos) * 10.0f);
-      
 	  // Determine direction for state updates
       if (pos > this->position) {
         this->current_operation = cover::COVER_OPERATION_OPENING;
       } else {
         this->current_operation = cover::COVER_OPERATION_CLOSING;
       }
-	 
-	  this->send_absolute_height_(height_mm);
-	  
+	  uint16_t height_mm = static_cast<uint16_t>(transform_position_to_height(position_target_) * 10.0f);
+	  this->set_interval("move_desk", 200, [this, height_mm]() {
+	    this->send_absolute_height_(height_mm);
+	  });
     }
 
-    this->position_target_ = pos;
 	ESP_LOGD(TAG, "Update Desk - Move from %.3f to %.3f", this->position * 100, this->position_target_ * 100);
 
     return;
@@ -368,14 +369,6 @@ void TimotionDeskControllerComponent::move_torwards_() {
 	  0xdd, 0x00, 0x70, 0x04, 0x03, 0xed, 0x05, 0x69};
   static const uint8_t CMD_M4[] = {
 	  0xdd, 0x00, 0x70, 0x08, 0x02, 0x94, 0x05, 0x13};	
-  
-  if (this->current_operation == cover::COVER_OPERATION_OPENING) {
-//    this->write_value_(this->control_handle_, CMD_UP, sizeof(CMD_UP));
-    this->write_value_(this->control_handle_, CMD_UP, sizeof(CMD_UP));
-  } else if (this->current_operation == cover::COVER_OPERATION_CLOSING) {
-//    this->write_value_(this->control_handle_, CMD_DOWN, sizeof(CMD_DOWN));
-    this->write_value_(this->control_handle_, CMD_DOWN, sizeof(CMD_DOWN));
-  }
 }
 
 void TimotionDeskControllerComponent::stop_move_() {
