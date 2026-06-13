@@ -252,7 +252,6 @@ void TimotionDeskControllerComponent::publish_cover_state_(uint8_t *value, uint1
 		  } else if (speed_raw == 69 || speed_raw == 5){
 			// Idle or unknown
 			this->current_operation = cover::COVER_OPERATION_IDLE;
-			this->cancel_interval("move_desk");
 			this->stop_move_();
 		  }
 
@@ -287,7 +286,6 @@ void TimotionDeskControllerComponent::control(const cover::CoverCall &call) {
   
   auto pos_val = call.get_position();
   if (pos_val.has_value()) {
-	this->cancel_interval("move_desk");
     auto pos = *pos_val;
 	this->position_target_ = pos;
 	
@@ -308,16 +306,37 @@ void TimotionDeskControllerComponent::control(const cover::CoverCall &call) {
       this->current_operation = cover::COVER_OPERATION_CLOSING;
     } 
 	else {
+      // Define a small tolerance window (0.005f is roughly a 0.5% margin or ~3mm)
+      const float epsilon = 0.005f;
+
+      // Early Exit: If we are already at the target position, do not start a loop!
+      if (std::abs(this->position - this->position_target_) <= epsilon) {
+        ESP_LOGD(TAG, "Desk is already at target position. Ignoring command to prevent loop spam.");
+        this->current_operation = cover::COVER_OPERATION_IDLE;
+        this->publish_state(false);
+        return;
+      }
+	  
 	  // Determine direction for state updates
-      if (pos > this->position) {
+      if (position_target_ > this->position) {
         this->current_operation = cover::COVER_OPERATION_OPENING;
       } else {
         this->current_operation = cover::COVER_OPERATION_CLOSING;
       }
-	  uint16_t height_mm = static_cast<uint16_t>(transform_position_to_height(position_target_) * 10.0f);
-	  this->set_interval("move_desk", 200, [this, height_mm]() {
-	    this->send_absolute_height_(height_mm);
-	  });
+	  
+	  uint16_t target_height_mm = static_cast<uint16_t>(transform_position_to_height(position_target_) * 10.0f);
+	  this->set_interval("move_desk", 200, [this, target_height_mm, epsilon]() {
+	    if ((this->current_operation == cover::COVER_OPERATION_OPENING && this->position >= (this->position_target_ - epsilon)) ||
+            (this->current_operation == cover::COVER_OPERATION_CLOSING && this->position <= (this->position_target_ + epsilon))) {
+          ESP_LOGD(TAG, "Target reached within interval loop. Gracefully stopping background heartbeat.");
+          this->stop_move_();
+          return;
+        }
+
+        // If we haven't reached it yet, continue sending the target coordinate
+        this->send_absolute_height_(target_height_mm);
+      });
+	  
     }
 
 	ESP_LOGD(TAG, "Update Desk - Move from %.3f to %.3f", this->position * 100, this->position_target_ * 100);
