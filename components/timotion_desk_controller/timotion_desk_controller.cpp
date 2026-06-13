@@ -289,12 +289,14 @@ void TimotionDeskControllerComponent::control(const cover::CoverCall &call) {
 
     if (pos == cover::COVER_OPEN || pos == 1) {
 	  static const uint8_t CMD_UP[] = {0xdd, 0x00, 0x71, 0x00, 0x00, 0x00, 0x05, 0x76};
-      this->write_value_(this->control_handle_, CMD_UP, sizeof(CMD_UP));
+	  this->set_interval("move_desk", 200, [this]() { this->write_value_(this->control_handle_, CMD_UP, sizeof(CMD_UP)); });
+//      this->write_value_(this->control_handle_, CMD_UP, sizeof(CMD_UP));
       this->current_operation = cover::COVER_OPERATION_OPENING;
     } 
 	else if (pos == cover::COVER_CLOSED || pos == 0) {
 	  static const uint8_t CMD_DOWN[] = {0xdd, 0x00, 0x72, 0x00, 0x00, 0x00, 0x05, 0x77};
-      this->write_value_(this->control_handle_, CMD_DOWN, sizeof(CMD_DOWN));
+	  this->set_interval("move_desk", 200, [this]() { this->write_value_(this->control_handle_, CMD_DOWN, sizeof(CMD_DOWN)); });
+//    this->write_value_(this->control_handle_, CMD_DOWN, sizeof(CMD_DOWN));
       this->current_operation = cover::COVER_OPERATION_CLOSING;
     } 
 	else {
@@ -372,6 +374,7 @@ void TimotionDeskControllerComponent::move_torwards_() {
 }
 
 void TimotionDeskControllerComponent::stop_move_() {
+  this->cancel_interval("move_desk");
   static const uint8_t CMD_STOP[] = {	  
 	  0xdd, 0x00, 0x70, 0x00, 0x00, 0x00, 0x05, 0x75};
   this->write_value_(this->control_handle_, CMD_STOP, sizeof(CMD_STOP));
